@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>任务跟踪系统-login</title>
+    <link rel="stylesheet" type="text/css" href="css/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="css/themes/icon.css">
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/jquery.easyui.min.js"></script>
+    <script type="text/javascript">
+        function login() {
+            //获取输入的工号
+            var task_workCode = $("#task_workCode").val();
+            var task_password = $("#task_password").val();
+            $.ajax({
+                url: "staff/login",
+                data: {"task_workCode": task_workCode, "task_password": task_password},
+                type: "post",
+                dataType: "JSON",
+                success: function (message) {
+                    if (message.code == 200) {
+                        layer.msg(message.msg);
+                        setTimeout(function () {
+                            window.location.href = "index.html";
+                        }, 500);
+                    }
+                    if (message.code == 400) {
+                        layer.msg(message.msg);
+                    }
+                },
+                error: function () {
+                    layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                }
+            })
+        }
+        function frogetPass() {
+            window.location.href="froget.html";
+        }
+    </script>
+</head>
+<body>
+<div>
+    <div id="particles-js" style="display: flex;align-items: center;justify-content: center;background: #000022;">
+    </div>
+    <div id="login-box" align="center" style="z-index:10;position: absolute;right: 43%;top: 30%">
+        <div style="margin:0px auto;"></div>
+        <h1 style="color: #ffffff;padding-bottom: 20px">欢迎进入任务系统</h1>
+
+        <div class="easyui-panel" title=" " style="width:200%;max-width:450px;padding:30px 60px;background: #0E2D5F;height: 80%">
+            <div style="margin-bottom:20px">
+                <input id="task_workCode" class="easyui-textbox" prompt="工号" iconWidth="28"  data-options="prompt:'Username',iconCls:'icon-man',iconWidth:38" style="width:100%;height:34px;padding:10px;background: #cccccc  ">
+            </div>
+            <div style="margin-bottom:30px">
+                <input id="task_password" class="easyui-passwordbox" prompt="密码" iconWidth="28" data-options="prompt:'Password',iconCls:'icon-lock',iconWidth:38" style="width:100%;height:34px;padding:10px;background: #cccccc">
+            </div>
+            <div style="margin-bottom:20px">
+                <input type="checkbox" checked="checked">
+                <span style="color: #ffffff">Remember me</span>
+                <a href="javascript:frogetPass()"  style="width:100%;height:35px;font-size: 15px;color: red;position: absolute;left:60%;text-decoration: none">忘记密码?</a>
+            </div>
+
+            <div>
+
+                <a href="javascript:login()" class="easyui-linkbutton" iconCls="icon-ok" style="width:100%;height:35px">登录</a>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script src="js/layer/layer.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

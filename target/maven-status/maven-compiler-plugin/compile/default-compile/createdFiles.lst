@@ -1,0 +1,14 @@
+com\cr\domain\State.class
+com\cr\dao\TaskStaffDao.class
+com\cr\interceptor\Intercept.class
+com\cr\service\BaseTaskStaffService.class
+com\cr\action\TaskStaffAction.class
+com\cr\domain\TaskStaff.class
+com\cr\domain\Message.class
+com\cr\util\ExcelTool.class
+com\cr\service\TaskStaffServiceImp.class
+com\cr\domain\Level.class
+com\cr\dao\InfoDynamicSql.class
+com\cr\domain\TaskDepartment.class
+com\cr\domain\Info.class
+com\cr\util\Mail.class

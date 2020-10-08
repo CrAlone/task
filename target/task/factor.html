@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>个人任务查询</title>
+    <link rel="stylesheet" type="text/css" href="css/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="css/themes/icon.css">
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="js/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="js/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="js/jquery.fullcalendar.js?v=0.7"></script>
+    <script type="text/javascript">
+        //点击查询
+        function see() {
+            //获取时间起始时间
+            var start = $("#start").datebox("getValue");
+            if (start == null){
+                start = "";
+            }
+            //获取时间 结束时间
+            var end = $("#end").datebox("getValue");
+            if (end == null){
+                end = "";
+            }
+            $("#task").datagrid({
+                url:"staff/selectTask?start="+start+"&end="+end,
+                method:"post",
+                rownumbers:true,
+                pagination:true,
+                fitColumns:true,
+                columns:[[
+                    {title:"选择",field:"",align:"center",checkbox:"true"},
+                    {title:"编号",field:"info_id",align:"center"},
+                    {title:"任务状态",field:"state",align:"center",
+                        formatter:function (value,row,index) {
+                            if (row){
+                                return row.state.state_name;
+                            }
+                        }
+                    },
+                    {title:"任务等级",field:"level",align:"center",
+                        formatter:function (value,row,index) {
+                            if (row){
+                                return row.level.level_name;
+                            }
+                        }
+                    },
+                    {title:"派发人",field:"staff",align:"center",
+                        formatter:function (value,row,index) {
+                            if (row){
+                                return row.taskStaff.staff_name;
+                            }
+                        }
+                    },
+                    {title:"接受人",field:"taskStaff",align:"center",
+                        formatter:function (value,row,index) {
+                            if (row){
+                                return row.staff.staff_name
+                            }
+                        }
+                    },
+                    {title:"任务名称",field:"info_name",align:"center"},
+                    {title:"创建时间",field:"info_create_date",align:"center"},
+                    {title:"待完成时间",field:"info_end_not_ate",align:"center"},
+                    {title:"完成时间",field:"info_end_date",align:"center"},
+                    {title:"任务说明",field:"info_desc",align:"center",width:"66%"},
+                    {title:"编辑",field:"button",align:"center",
+                    formatter:function (value,row,index) {
+                        if (row){
+                            return "<input type='button' value='删除' onclick='del("+row.info_id+")'>" +
+                                "<input type='button' value='填写完成时间' onclick='com("+row.info_id+")'>" +
+                                "<input type='button' value='查看' onclick='detailed("+row.info_id+")'>"
+                        }
+                    }
+                    }
+                ]]
+            })
+        }
+        //查询
+        function detailed(info_id) {
+            $.ajax({
+                url:"staff/selectTaskInfo",
+                data:{"info_id":info_id},
+                type:"post",
+                dataType:"JSON",
+                success:function (message) {
+                    if (message.code == 200){
+                        var info = message.data;
+                        //获取任务id
+                        info_id_ = info.info_id;
+                        //创建时间
+                        $("#create_date").textbox("setValue",info.info_create_date);
+                        //待完成时间
+                        $("#not_ate").textbox("setValue",info.info_end_not_ate);
+                        //已完成时间
+                        $("#end_date").textbox("setValue",info.info_end_date);
+                        //派发人
+                        $("#personnel").textbox("setValue",info.staff.staff_name);
+                        //任务名称
+                        $("#name").textbox("setValue",info.info_name);
+                        //接收人
+                        $("#ff_id").textbox("setValue",info.taskStaff.staff_name);
+                        //任务等级
+                        $("#sk_level").textbox("setValue",info.level.level_name);
+                        //任务状态
+                        $("#sk_state").textbox("setValue",info.state.state_name);
+                        //任务说明
+                        $("#fo_desc").textbox("setValue",info.info_desc);
+                    }
+                },
+                error:function () {
+                    layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                }
+            })
+            $("#check").dialog("open").dialog("setTitle","<span style='color:blue;font-family: 微软雅黑;'>任务信息</span>");
+        }
+        //删除
+        function del(info_id) {
+            var de = confirm("确定要删除吗?");
+            if (de == true){
+                $.ajax({
+                    url:"staff/updateRemove",
+                    data:{"info_id":info_id},
+                    type:"post",
+                    dataType:"JSON",
+                    success:function (message) {
+                        if (message.code == 200){
+                            layer.msg(message.msg);
+                            setTimeout(function () {
+                                $("#task").datagrid();
+                            },500)
+                        }
+                        if (message.code == 400){
+                            layer.msg(message.msg);
+                        }
+                    },
+                    error:function () {
+                        layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                    }
+                })
+            }
+        }
+        //批量删除
+        function dele() {
+           var infos =  $("#task").datagrid("getSelections");
+           // var url = "staff/deleteBatch";
+           //创建一个数组 存入id
+            var ids = new Array();
+            // if (infos != null){
+            //     url += "?"
+            // }
+           for (var i =0;i<infos.length;i++){
+               var info = infos[i];
+               var info_id = info.info_id;
+               ids.push(info_id);
+               // url +="info"+i+"="+info_id+"&";
+           }
+           // url = url.substring(0,url.length-1);
+            $.ajax({
+                url:"staff/deleteBatch",
+                data:{"ids":ids},
+                traditional:true,
+                type:"post",
+                dataType:"JSON",
+                success:function (message) {
+                    if (message.code == 200){
+                        layer.msg(message.msg);
+                        setTimeout(function () {
+                            $("#task").datagrid();
+                        },500)
+                    }
+                    if (message.code == 400){
+                        layer.msg(message.msg);
+                    }
+                },
+                error:function () {
+                    layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                }
+            })
+        }
+        //任务id
+        var info_id_ = {};
+        //修改
+        function com(info_id) {
+            //通过任务id查询该任务的所有信息
+            $.ajax({
+                url:"staff/selectTaskInfo",
+                data:{"info_id":info_id},
+                type:"post",
+                dataType:"JSON",
+                success:function (message) {
+                    if (message.code == 200){
+                        var info = message.data;
+                        //获取任务id
+                        info_id_ = info.info_id;
+                        //创建时间
+                        $("#info_create_date").textbox("setValue",info.info_create_date);
+                        //待完成时间
+                        $("#info_end_not_ate").textbox("setValue",info.info_end_not_ate);
+                        //已完成时间
+                        $("#info_end_date").datebox("setValue",info.info_end_date);
+                        //派发人
+                        $("#distribute").textbox("setValue",info.staff.staff_name);
+                        //任务名称
+                        $("#into_name").textbox("setValue",info.info_name);
+                        //接收人
+                        $("#staff_id").textbox("setValue",info.taskStaff.staff_name);
+                        //任务等级
+                        $("#task_level").textbox("setValue",info.level.level_name);
+                        //任务状态
+                        $("#task_state").textbox("setValue",info.state.state_name);
+                        //任务说明
+                        $("#info_desc").textbox("setValue",info.info_desc);
+                    }
+                },
+                error:function () {
+                    layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                }
+            })
+            $("#update").dialog("open").dialog("setTitle","<span style='color:blue;font-family: 微软雅黑;'>填写完成时间</span>")
+        }
+        //日历日期格式转换
+        function myFormatter(date) {
+            var y = date.getFullYear();
+            var m = date.getMonth() + 1;
+            var d = date.getDate();
+            return y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d);
+        }
+        //日历日期格式转换
+        function myParser(s) {
+            if (!s) return new Date();
+            var ss = (s.split('-'));
+            var y = parseInt(ss[0], 10);
+            var m = parseInt(ss[1], 10);
+            var d = parseInt(ss[2], 10);
+            if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                return new Date(y, m - 1, d);
+            } else {
+                return new Date();
+            }
+        }
+        //返回
+        function out() {
+            window.location.href="index.html";
+        }
+        //提交完成时间
+        function Determine() {
+            //获取完成时间
+            var info_end_date = $("#info_end_date").datebox("getValue");
+            //获取任务对应的id
+            if (info_end_date != ""){
+                $.ajax({
+                    url:"staff/updatedCompletionTime",
+                    data:{"info_end_date":info_end_date,"info_id_":info_id_},
+                    type:"post",
+                    dataType:"JSON",
+                    success:function (message) {
+                        if (message.code == 200){
+                            layer.msg(message.msg);
+                            setTimeout(function () {
+                                $("#task").datagrid();
+                            },500)
+                            $("#update").dialog("close");
+                        }
+                        if (message.code == 400){
+                            layer.msg(message.msg);
+                        }
+                    },
+                    error:function () {
+                        layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                    }
+                })
+            }else {
+                $.messager.alert("警告!","完成时间不能为空");
+            }
+        }
+        function exportInfo() {
+            //获取时间
+            var start = $("#start").datebox("getValue");
+            var end  = $("#end").datebox("getValue");
+            // $.ajax({
+            //     url:"staff/exportDataToExcel",
+            //     data:{"start":start,"end":end},
+            //     type:"post",
+            //     dataType:"JSON"
+            // })
+            window.location.href = "staff/exportDataToExcel?start="+start+"&end="+end
+        }
+
+
+    </script>
+</head>
+<body  class="easyui-layout">
+<div>
+    <div data-options="region:'north',border:false" style="height:120px;background:#0E2D5F;margin:0 auto;">
+        <span style="color: #fff ;font-size: 30px;padding-left: 200px;position:absolute;top: 30px " >任务跟踪管理系统</span>
+        <div>
+            <a href="javascript:out()" id="getOut" style="color:#fff;font-size: 20px;position:absolute;top: 70px;right: 8%;text-decoration: none">返回</a>
+        </div>
+    </div>
+    <div data-options="region:'north',border:false" style="height:80px;background:#0E2D5F;text-align:center;">
+        <span style="color: #fff">从</span><input id="start" type="text" class= "easyui-datebox" data-options="formatter:myFormatter,parser:myParser"  name="start"><span style="color: #fff">到</span>
+        <input id="end" type="text" class= "easyui-datebox" data-options="formatter:myFormatter,parser:myParser" name="end"><span style="color: #fff">时间</span><br>
+        <a href="javascript:see()" class="easyui-linkbutton" >查找</a>
+        <a href="javascript:dele()" class="easyui-linkbutton" >删除</a>
+        <a href="javascript:exportInfo()" class="easyui-linkbutton" >导出</a>
+        <div style="background: #1E9FFF;height: 10%;margin-top: 10px">
+        </div>
+        <div>
+            <table id="task"></table>
+        </div>
+    </div>
+</div>
+<!--修改面板-->
+<div id="update" class="easyui-dialog" style="width: 20%;height: 32%" closed="true" >
+    <table width="100%">
+        <tr>
+            <td><span id="form">创建任务时间:</span></td>
+            <td>
+                <input style="width: 100%;" type="text" id="info_create_date" class= "easyui-textbox" readonly="readonly">
+            </td>
+        </tr>
+        <tr>
+            <td><span id="form1">待完成时间:</span></td>
+            <td>
+                <input style="width: 100%;" type="text" id="info_end_not_ate" readonly="readonly" class= "easyui-textbox" data-options="formatter:myFormatter,parser:myParser" >
+            </td>
+        </tr>
+        <tr>
+            <td><span id="form2">已完成时间:</span></td>
+            <td>
+                <input style="width: 100%;" type="text" id="info_end_date"  class= "easyui-datebox" data-options="formatter:myFormatter,parser:myParser" >
+            </td>
+        </tr>
+        <tr>
+            <td><span  id="form3">派发人员:</span></td>
+            <td>
+                <input style="width: 100%;" type="text" class= "easyui-textbox" id="distribute" readonly="readonly">
+            </td>
+
+        </tr>
+        <tr>
+            <td><span id="form4">任务名称:</span></td>
+            <td>
+                <input style="width: 100%;" class= "easyui-textbox" readonly="readonly"  id="into_name" type="text">
+            </td>
+        </tr>
+        <tr>
+            <td><span >接收人员:</span></td>
+            <td>
+                <input id="staff_id" class= "easyui-textbox" style="width: 100%;" readonly="readonly">
+            </td>
+        </tr>
+        <tr>
+            <td><span id="form6">任务级别:</span></td>
+            <td>
+                <input id="task_level" class= "easyui-textbox" style="width:100%;" readonly="readonly" >
+            <td>
+            </td>
+        </tr>
+        <tr>
+            <td><span id="form8">任务状态:</span></td>
+            <td>
+                <input id="task_state" class= "easyui-textbox" style="width: 100%" readonly="readonly">
+
+            </td>
+        </tr>
+        <tr>
+            <td><span id="form9">任务说明:</span></td>
+            <td>
+                <input id="info_desc" class="easyui-textbox" readonly="readonly"  labelPosition="top" multiline="true" style="width:100%;height:80px;margin-top:500px;">
+            </td>
+        </tr>
+    </table>
+    <div id="panel_buttons" align="center" >
+        <a href="javascript:Determine()" class="easyui-linkbutton" iconCls="icon-ok" ></a>
+        <a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="$('#update').dialog('close')"></a>
+    </div>
+</div>
+<!--查看面板-->
+<div>
+    <div id="check" class="easyui-dialog" style="width: 20%;height: 32%" closed="true" >
+        <table width="100%">
+            <tr>
+                <td><span>创建任务时间:</span></td>
+                <td>
+                    <input style="width: 100%;" type="text" id="create_date" class= "easyui-textbox" readonly="readonly">
+                </td>
+            </tr>
+            <tr>
+                <td><span >待完成时间:</span></td>
+                <td>
+                    <input style="width: 100%;" type="text" id="not_ate" readonly="readonly" class= "easyui-textbox" data-options="formatter:myFormatter,parser:myParser" >
+                </td>
+            </tr>
+            <tr>
+                <td><span>已完成时间:</span></td>
+                <td>
+                    <input style="width: 100%;" type="text" id="end_date" readonly="readonly" class= "easyui-textbox" data-options="formatter:myFormatter,parser:myParser" >
+                </td>
+            </tr>
+            <tr>
+                <td><span>派发人员:</span></td>
+                <td>
+                    <input style="width: 100%;" type="text" class= "easyui-textbox" id="personnel" readonly="readonly">
+                </td>
+
+            </tr>
+            <tr>
+                <td><span>任务名称:</span></td>
+                <td>
+                    <input style="width: 100%;" class= "easyui-textbox" readonly="readonly"  id="name" type="text">
+                </td>
+            </tr>
+            <tr>
+                <td><span >接收人员:</span></td>
+                <td>
+                    <input id="ff_id" class= "easyui-textbox" style="width: 100%;" readonly="readonly">
+                </td>
+            </tr>
+            <tr>
+                <td><span>任务级别:</span></td>
+                <td>
+                    <input id="sk_level" class= "easyui-textbox" style="width:100%;" readonly="readonly" >
+                <td>
+                </td>
+            </tr>
+            <tr>
+                <td><span>任务状态:</span></td>
+                <td>
+                    <input id="sk_state" class= "easyui-textbox" style="width: 100%" readonly="readonly">
+
+                </td>
+            </tr>
+            <tr>
+                <td><span>任务说明:</span></td>
+                <td>
+                    <input id="fo_desc" class="easyui-textbox" readonly="readonly"  labelPosition="top" multiline="true" style="width:100%;height:80px;margin-top:500px;">
+                </td>
+            </tr>
+        </table>
+</div>
+<script src="js/layer/layer.js"></script>
+</body>
+</html>

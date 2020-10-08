@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>任务跟踪管理系统</title>
+    <link rel="stylesheet" type="text/css" href="css/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="css/themes/icon.css">
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="js/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="js/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="js/jquery.fullcalendar.js?v=0.7"></script>
+    <script type="text/javascript">
+        var staff_ads = 0;
+        var m_data={};
+        //日历日期格式转换
+        function myFormatter(date) {
+            var y = date.getFullYear();
+            var m = date.getMonth() + 1;
+            var d = date.getDate();
+            return y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d);
+        }
+        //日历日期格式转换
+        function myParser(s) {
+            if (!s) return new Date();
+            var ss = (s.split('-'));
+            var y = parseInt(ss[0], 10);
+            var m = parseInt(ss[1], 10);
+            var d = parseInt(ss[2], 10);
+            if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                return new Date(y, m - 1, d);
+            } else {
+                return new Date();
+            }
+        }
+        $(function (){
+            $("#task_level").combobox({
+                url:'staff/findAllLevel',
+                valueField:'level_id',
+                textField:'level_name'
+            });
+            //查询全部部门
+            $("#department_id").combobox({
+               url:'staff/findAllDepartment',
+               valueField:'department_id',
+               textField:'department_name',
+               onLoadSuccess:function(){
+                   $("#staff_id").combobox("setValue","---请选择人员---");
+               },
+               onSelect:function (rec) {
+                   var department_id = rec.department_id;
+                   $("#staff_id").combobox("setValue","---请选择人员---"),
+                   $("#staff_id").combobox({
+                       url:'staff/findAllTaskStaff?department_id='+department_id+'',
+                   });
+               }
+            });
+            $("#staff_id").combobox({
+                valueField:'staff_id',
+                textField:'staff_name'
+            });
+            //根据部门查人员信息
+
+
+            $("#task_state").combobox({
+               url:'staff/findAllState',
+               valueField:'state_id',
+               textField:'state_name'
+            });
+            $.ajax({
+                url:"staff/session",
+                data:"",
+                type:"post",
+                dataType:"JSON",
+                success:function (staff) {
+                    $("#distribute").val(staff.staff_name);
+                    $("#person1").html(staff.staff_id);
+                    $("#person2").html(staff.department.department_name);
+                    $("#person3").html(staff.staff_name);
+                    $("#person4").html(staff.staff_workCode);
+                    $("#name").html(staff.staff_name);
+                    staff_ads = staff.staff_ads;
+                }
+            });
+            //查询当天任务信息
+            $("#list").datagrid({
+               url:"staff/selectSameDay",
+               method:"post",
+               rownumbers:true,
+               pagination:true,
+               fitColumns:true,
+               frozenColumns:[[
+                    {title:"编号",field:"info_id",align:"center"},
+                    {title:"日期",field:"info_create_date",align:"center"},
+                    {title:"名称",field:"info_name",align:"left"},
+                    {title:"待完成时间",field:"info_end_not_ate",align:"center"},
+                    {title:"已完成时间",field:"info_end_date",align:"center"},
+                    {title:"任务介绍",field:"info_desc",align:"center"},
+               ]],
+               columns:[[
+                    {title:"任务状态",field:"state",align:"left",
+                        formatter:function(value,row,index) {
+                            if (row){
+                                return row.state.state_name;
+                            }
+                        }
+                    },
+                    {title:"任务级别",field:"level",align:"left",
+                        formatter:function (value,row,index) {
+                            if (row){
+                                return row.level.level_name;
+                            }
+                        }
+                    },
+                    {title:"派发人",field:"staff",align:"left",
+                        formatter:function (value,row,index) {
+                            if (row){
+                                return row.staff.staff_name;
+                            }
+                        }
+                    },
+                    {title:"接受人",field:"taskStaff",align:"left",
+                        formatter:function (value,row,index) {
+                            if (row){
+                                return row.taskStaff.staff_name;
+                            }
+                        }
+                    }
+               ]],
+               onLoadSuccess:function (data) {
+                   m_data = data;
+                   $("#dayCount").html("当天任务("+data.total+")");
+               }
+            });
+            //查询当月任务信息
+            $("#listAll").datagrid({
+                url:"staff/selectSameMonth",
+                method:"post",
+                rownumbers:true,
+                pagination:true,
+                fitColumns:true,
+                //冻结列
+                frozenColumns:[[
+                    {title:"编号",field:"info_id",align:"center"},
+                    {title:"日期",field:"info_create_date",align:"center"},
+                    {title:"名称",field:"info_name",align:"left"},
+                    {title:"待完成时间",field:"info_end_not_ate",align:"center"},
+                    {title:"已完成时间",field:"info_end_date",align:"center"},
+                    {title:"任务介绍",field:"info_desc",align:"center"}
+                ]],
+                columns:[[
+                    {title:"任务状态",field:"state",align:"left",
+                    formatter:function (value,row,index) {
+                        if (row){
+                            return row.state.state_name;
+                        }
+                    }
+                    },
+                    {title:"任务级别",field:"level",align:"left",
+                    formatter:function (value,row,index) {
+                        if (row){
+                            return row.level.level_name;
+                        }
+                    }
+                    },
+                    {title:"派发人",field:"staff",align:"left",
+                    formatter:function (value,row,index) {
+                        if (row){
+                            return row.staff.staff_name;
+                        }
+                    }
+                    },
+                    {title:"接受人",field:"taskStaff",align:"left",
+                    formatter:function (value,row,index) {
+                        if (row){
+                            return row.taskStaff.staff_name;
+                        }
+                    }
+                    }
+                ]],
+                onLoadSuccess:function (data) {
+                    $("#monthCount").html("当月任务("+data.total+")");
+                }
+            });
+        })
+        //派发任务
+        function distribute() {
+            //获取当前时间
+            var date = new Date();
+            //获取当前年
+            var year = date.getFullYear();
+            //获取当前的月
+            var month = date.getMonth();
+            //获取当前的日
+            var day = date.getDate();
+            $("#info_create_date").val(year+"-"+(month<10?("0"+(month+1)):(month+1))+"-"+(day<10?("0"+day):day));
+            $("#panel").dialog('open').dialog("setTitle","<span style='color:blue;font-family: 微软雅黑;'>派发任务</span>");
+        }
+        //查询任务
+        function query() {
+            if (staff_ads == 1){
+                window.location.href="factor.html";
+            }else {
+             $.messager.alert("提示","对不起，您不是管理员不能使用该功能");
+            }
+        }
+        //统计报表
+        function srf() {
+            if (staff_ads == 1){
+                window.location.href="report.html";
+            }else {
+                $.messager.alert("提示","对不起，您不是管理员不能使用该功能");
+            }
+        }
+        //权限
+        function jurisdiction() {
+            if (staff_ads == 1){
+                window.location.href="right.html";
+            }else {
+                $.messager.alert("提示","对不起，您不是管理员不能使用该功能");
+            }
+        }
+        //退出
+        function out() {
+            var out = confirm("确定要退出吗?");
+            if (out == true){
+                window.location.href="login.html";
+            }
+        }
+        //派发任务
+        function saveTask() {
+            //获取表格信息
+            //获取创建时间
+            var info_create_date = $("#info_create_date").val();
+            if (info_create_date == "" ){
+                var demo1 = document.getElementById("demo1").innerText;
+                $.messager.alert("警告!",demo1+"信息不能为空");
+                return;
+            }
+            //待完成时间
+            var info_end_not_ate = $("#info_end_not_ate").datebox("getValue");
+            if  (info_end_not_ate == ""){
+                var demo2 = document.getElementById("demo2").innerText;
+                $.messager.alert("警告!",demo2+"信息不能为空");
+                return;
+            }
+            //派发任务
+            var distribute = $("#distribute").val();
+            if (distribute == ""){
+                var demo3 = document.getElementById("demo3").innerText;
+                $.messager.alert("警告!",demo3+"信息不能为空");
+                return;
+            }
+            //任务名称
+            var into_name = $("#into_name").val();
+            if (into_name == ""){
+                var demo4 = document.getElementById("demo4").innerText;
+                $.messager.alert("警告!",demo4+"信息不能为空");
+                return;
+            }
+            //接受任务
+            var staff_id = $("#staff_id").combobox("getValue");
+            //任务级别
+            var task_level = $("#task_level").combobox("getValue");
+            if (task_level == ""){
+                var demo6 = document.getElementById("demo6").innerText;
+                $.messager.alert("警告!",demo6+"信息不能为空");
+                return;
+            }
+            //任务状态
+            var task_state = $("#task_state").combobox("getValue");
+            if (task_state == ""){
+                var demo7 = document.getElementById("demo7").innerText;
+                $.messager.alert("警告!",demo7+"信息不能为空");
+                return;
+            }
+            //任务说明
+            var info_desc = $("#info_desc").val();
+            if (info_desc == ""){
+                var demo8 = document.getElementById("demo8").innerText;
+                $.messager.alert("警告!",demo8+"信息不能为空");
+                return;
+            }
+            $.ajax({
+                url:"staff/insertInfo",
+                data:{"info_create_date":info_create_date,"info_end_not_ate":info_end_not_ate,"distribute":distribute,"into_name":into_name,"staff_id":staff_id,"task_level":task_level,"task_state":task_state,"info_desc":info_desc},
+                type:"get",
+                dataType:"JSON",
+                success:function (message) {
+                    if (message.code == 200){
+                        layer.msg(message.msg);
+                        setTimeout(function () {
+                            $("#panel").dialog("close");
+                            window.location.reload();
+                        },300)
+                    }
+                    if (message.code == 400){
+                        layer.msg(message.msg);
+                    }
+                },
+                error:function () {
+                    layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                }
+            });
+        }
+        function openDay() {
+            if ($("#dayTask").attr("hidden") == "hidden"){
+                $("#dayTask").removeAttr("hidden");
+                $("#list").datagrid({})
+            }else {
+                $("#dayTask").attr("hidden","hidden");
+            }
+        }
+        function openMonth() {
+            if ($("#monthTask").attr("hidden") == "hidden"){
+                $("#monthTask").removeAttr("hidden");
+                $("#listAll").datagrid({})
+            }else {
+                $("#monthTask").attr("hidden","hidden");
+            }
+        }
+        function revert() {
+            $("#personal").hide();
+            $("#modify").hide();
+            $("#page").show();
+        }
+        function toExamine() {
+            $("#page").hide();
+            $("#modify").hide();
+            $("#personal").show();
+        }
+        function accept() {
+            $("#page").hide();
+            $("#personal").hide();
+            $("#modify").show();
+        }
+        function help() {
+            alert("请与管理员联系! 138438");
+        }
+        //清空
+        function Eliminate() {
+            $("#old").val("");
+            $("#new").val("");
+            $("#confirm").val("");
+        }
+        //确认提交修改密码
+        function Submission() {
+            //获取原来的密码和新密码
+            var old = $("#old").val();
+            var newPass = $("#new").val();
+            var confirm = $("#confirm").val();
+            if (newPass != confirm){
+                layer.msg("新密码不一致");
+                return;
+            }
+            if (old == newPass){
+                layer.msg("新密码和旧密码重复");
+                return;
+            }
+            $.ajax({
+                url:"staff/updateModify",
+                data:{"old":old,"newPass":newPass},
+                type:"post",
+                dataType:"JSON",
+                success:function (message) {
+                    layer.load();
+                    if (message.code == 200){
+                        layer.closeAll();
+                        layer.msg(message.msg);
+                        setTimeout(function () {
+                            window.location.href="login.html";
+                        },500);
+                    }
+                    if (message.code == 400){
+                        layer.closeAll();
+                        layer.msg(message.msg);
+                    }
+                },
+                error:function () {
+                    layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+                }
+            })
+        }
+
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'north',border:false" style="height:120px;background:#0E2D5F;margin:0 auto;">
+        <span style="color: #fff ;font-size: 30px;padding-left: 200px;position:absolute;top: 30px " >任务跟踪管理系统</span>
+        <div>
+            <a href="javascript:toExamine()" id="name" style="color:#fff;font-size: 20px;position:absolute;top: 70px;right: 10.5%;text-decoration: none"></a>
+            <a href="javascript:toExamine()"><img src="css/themes/icons/用户.png" style="width: 30px;height: 30px;position: absolute;right: 15.3%;top: 57%;text-decoration: none"></a>
+        </div>
+        <div>
+            <a href="javascript:out()" id="getOut" style="color:#fff;font-size: 20px;position:absolute;top: 70px;right: 8%;text-decoration: none">退出</a>
+            <a href="javascript:out()"><img src="css/themes/icons/退出.png" style="width: 30px;height: 30px;position: absolute;right: 6.5%;top: 57%;text-decoration: none"></a>
+        </div>
+    </div>
+    <div data-options="region:'west',split:true,title:'任务管理系统'"style="width:150px;padding: 0px">
+        <div class="easyui-accordion" data-options="fit:false,border:false">
+            <div title="任务管理" data-options="iconCls:'icon-administration'" style="overflow:auto;padding:0px;">
+                <a href="javascript:distribute()" id="addTask" style="width: 100%;" class="easyui-linkbutton" data-options="iconCls:'icon-distribute'">派发任务</a>
+                <a href="javascript:query()"  style="width: 100%;" class="easyui-linkbutton" data-options="iconCls:'icon-query'">查询任务</a>
+                <a href="javascript:srf()" style="width: 100%" class="easyui-linkbutton" data-options="iconCls:'icon-report'">统计报表</a>
+                <a href="javascript:jurisdiction()" style="width: 100%;" class="easyui-linkbutton" data-options="iconCls:'icon-jurisdiction'">权限设置</a>
+            </div>
+            <div title="个人中心" data-options="iconCls:'icon-man'" style="overflow:auto;padding:0px;">
+                <a href="javascript:accept()" style="width: 100%" class="easyui-linkbutton" data-options="iconCls:'icon-a'">修改密码</a>
+                <a href="javascript:toExamine()" style="width: 100%;" class="easyui-linkbutton" data-options="iconCls:'icon-person'">个人中心</a>
+                <a href="javascript:out()" style="width: 100%;" class="easyui-linkbutton" data-options="iconCls:'icon-out'">退出登录</a>
+            </div>
+            <div title="帮助" data-options="iconCls:'icon-help2'" style="overflow:auto;padding:0px;">
+                <a href="javascript:help()" style="width: 100%;" class="easyui-linkbutton" data-options="iconCls:'icon-help'">帮助</a>
+            </div>
+        </div>
+    </div>
+    <div data-options="region:'center',title:'Homepage'">
+<!--        首页面-->
+        <div id="page" style="height: 100%;width: 100%" >
+            <div style="background: #4b72a4">
+                <span id="dayCount" onclick="openDay()"
+                      style="font-size: 30px;color: #cccccc;padding-left: 500px;cursor:pointer" title="点击查看详情"></span>
+                <span id="monthCount" onclick="openMonth()"
+                      style="font-size: 30px;color: #cccccc;position: absolute;right:500px;cursor:pointer"
+                      title="点击查看详情"></span>
+            </div>
+            <!--    当天任务    -->
+            <div hidden="hidden" id="dayTask">
+                <table id="list"></table>
+            </div>
+            <!--       当月任务 -->
+            <div hidden id="monthTask">
+                <table id="listAll"></table>
+            </div>
+            <div class="easyui-fullCalendar" fit="true"></div>
+        </div>
+<!--        个人信息-->
+        <div id="personal" hidden>
+            <span style="font-size: 50px;position: absolute;top: 5%;left: 5%;border-bottom: black 1px solid;width: 80%">个人中心</span>
+            <img src="css/themes/icons/右箭头.png" style="width:1%;position: absolute;top: 20.5%;left: 14%">
+            <span style="font-size: 25px;position: absolute;top: 20%;left: 16%;width: 80%">...个人id</span>
+            <span id="person1" style="font-size: 25px;position: absolute;top: 20%;left: 50%;width: 80%"></span>
+            <img src="css/themes/icons/右箭头.png" style="width:1%;position: absolute;top: 30.5%;left: 14%">
+            <span style="font-size: 25px;position: absolute;top: 30%;left: 16%;width: 80%">...所属部门</span>
+            <span id="person2" style="font-size: 25px;position: absolute;top: 30%;left: 50%;width: 80%"></span>
+            <img src="css/themes/icons/右箭头.png" style="width:1%;position: absolute;top: 40.5%;left: 14%">
+            <span style="font-size: 25px;position: absolute;top: 40%;left: 16%;width: 80%">...姓名</span>
+            <span id="person3" style="font-size: 25px;position: absolute;top: 40%;left: 50%;width: 80%"></span>
+            <img src="css/themes/icons/右箭头.png" style="width:1%;position: absolute;top: 50.5%;left: 14%">
+            <span style="font-size: 25px;position: absolute;top: 50%;left: 16%;width: 80%">...工号</span>
+            <span id="person4" style="font-size: 25px;position: absolute;top: 50%;left: 50%;width: 80%"></span>
+            <img src="css/themes/icons/装饰品.png" style="width:3%;position: absolute;top: 7.4%;left: 68.5%">
+            <span style="font-size: 50px;position: absolute;top: 5%;right: 30%;border-right: black 1px solid;width: 80%;height: 80%"></span>
+            <input type="button" onclick="revert()" title="返回" value="返回"  style="position: absolute;top: 62%;left: 33%;width: 2%;" >
+        </div>
+<!--        修改密码-->
+        <div id="modify" hidden>
+        <span style="font-size: 50px;position: absolute;top: 5%;left: 5%;border-bottom: black 1px solid;width: 80%">修改密码</span>
+        <table width="100%">
+            <img src="css/themes/icons/修改.png" style="width:1%;position: absolute;top: 20.5%;left: 14%">
+            <tr>
+                <td>
+                    <span style="font-size: 25px;position: absolute;top: 20%;left: 16%;width: 12%;border-bottom: #cccccc 1px solid">请输入原有密码</span>
+                </td>
+                <td>
+                    <input type="password" name="text" id="old" style="font-size: 25px;position: absolute;top: 20%;left: 40%;width:20%">
+                </td>
+            </tr>
+            <img src="css/themes/icons/修改.png" style="width:1%;position: absolute;top: 30.5%;left: 14%">
+            <tr>
+                <td>
+                    <span style="font-size: 25px;position: absolute;top: 30%;left: 16%;width: 12%;border-bottom: #cccccc 1px solid">请输入新密码</span>
+                </td>
+                <td>
+                    <input type="password" name="text" id="new" style="font-size: 25px;position: absolute;top: 30%;left: 40%;width: 20%">
+                </td>
+            </tr>
+            <img src="css/themes/icons/修改.png" style="width:1%;position: absolute;top: 40.5%;left: 14%">
+            <tr>
+                <td>
+                    <span style="font-size: 25px;position: absolute;top: 40%;left: 16%;width: 12%;border-bottom: #cccccc 1px solid">请您再次确认您的密码</span>
+                </td>
+                <td>
+                    <input type="password" name="text" id="confirm" style="font-size:25px;position: absolute;top:40%;left:40%;width:20%">
+                </td>
+            </tr>
+            <img src="css/themes/icons/装饰品.png" style="width:3%;position: absolute;top: 7.4%;left: 68.5%">
+            <span style="font-size: 50px;position: absolute;top: 5%;right: 30%;border-right: black 1px solid;width: 80%;height: 80%"></span>
+            <input type="button" onclick="Submission()" title="确认" value="确认"  style="position: absolute;top: 62%;left: 23%;width: 5%;" >
+            <input type="button" onclick="Eliminate()" title="撤回" value="撤回"  style="position: absolute;top: 62%;left: 33%;width: 5%;" >
+            <input type="button" onclick="revert()" title="返回" value="返回"  style="position: absolute;top: 62%;left: 43%;width: 5%;" >
+        </table>
+    </div>
+    <!--任务添加面板-->
+    <div id="panel" class="easyui-dialog" style="width: 20%;height: 30%" closed="true" >
+        <table width="100%">
+            <tr>
+                 <td><span id="demo1">创建任务时间:</span></td>
+                 <td>
+                 <input style="width: 100%;" type="text" id="info_create_date" readonly="readonly">
+                 </td>
+            </tr>
+            <tr>
+                <td><span id="demo2">待完成时间:</span></td>
+                <td>
+                    <input style="width: 100%;" type="text" id="info_end_not_ate"  class= "easyui-datebox" data-options="formatter:myFormatter,parser:myParser" >
+                </td>
+            </tr>
+            <tr>
+                <td><span  id="demo3">派发任务:</span></td>
+                <td>
+                    <input style="width: 100%;" type="text"  id="distribute" readonly="readonly">
+                </td>
+
+            </tr>
+            <tr>
+                <td><span id="demo4">任务名称:</span></td>
+                <td>
+                    <input style="width: 100%;" class= "easyui-textbox" id="into_name" type="text">
+                </td>
+            </tr>
+            <tr>
+                <td><span id="demo5">接受任务部门:</span></td>
+                <td>
+                    <input id="department_id" style="width: 100%;" editable="false" value="---请选择部门---">
+                </td>
+            </tr>
+            <tr>
+                <td><span >部门接收人:</span></td>
+                <td>
+                    <input id="staff_id" style="width: 100%;" editable="false"   value="">
+                </td>
+            </tr>
+            <tr>
+                <td><span id="demo6">任务级别:</span></td>
+                <td>
+                    <input id="task_level" style="width:100%;" editable="false"  value="--请选择---">
+                <td>
+                </td>
+            </tr>
+            <tr>
+                <td><span id="demo7">任务状态:</span></td>
+                <td>
+                    <input id="task_state" style="width: 100%" editable="false"  value="---请选择---">
+
+                </td>
+            </tr>
+            <tr>
+                <td><span id="demo8">任务说明:</span></td>
+                <td>
+                    <input id="info_desc" class="easyui-textbox"  labelPosition="top" multiline="true" style="width:100%;height:80px;margin-top:500px;">
+                </td>
+            </tr>
+        </table>
+        <div id="panel_buttons" align="center" >
+            <a href="javascript:saveTask()" class="easyui-linkbutton" iconCls="icon-ok" ></a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="$('#panel').dialog('close')"></a>
+        </div>
+    </div>
+    </div>
+    <script src="js/layer/layer.js"></script>
+</body>
+</html>
+

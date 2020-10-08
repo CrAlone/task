@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>找回密码</title>
+</head>
+<link rel="stylesheet" type="text/css" href="css/themes/default/easyui.css">
+<link rel="stylesheet" type="text/css" href="css/themes/icon.css">
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/jquery.easyui.min.js"></script>
+<script type="text/javascript">
+    function determine() {
+        //获取邮箱
+        var mailbox = $("#task_workCode").val();
+        //获取验证码
+        var verification_code = $("#verification_code").val();
+        //获取密码
+        var pass = $("#task_password").val();
+        if (mailbox == ""){
+            $.messager.alert("警告！","邮箱不能为空")
+            return;
+        }
+        if (verification_code == ""){
+            $.messager.alert("警告！","验证码不能为空");
+            return;
+        }
+        if (pass == ""){
+            $.messager.alert("警告！","密码不能为空");
+            return;
+        }
+        $.ajax({
+            url:"staff/updateRetrievePassword",
+            data:{"mailbox":mailbox,"verification_code":verification_code,"pass":pass},
+            type:"post",
+            dataType:"JSON",
+            success:function (message) {
+                if (message.code == 200){
+                    layer.msg(message.msg);
+                    setTimeout(function () {
+                        window.location.href="login.html";
+                    },500);
+                }else {
+                    layer.msg(message.msg);
+                }
+            },
+            error:function () {
+                layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+            }
+        })
+    }
+    //获取验证码
+    function obtain() {
+        //获取邮箱
+        var mailbox = $("#task_workCode").val();
+        $.ajax({
+            url:"staff/sendMailbox",
+            data:{"mailbox":mailbox},
+            type:"post",
+            dataType:"JSON",
+            success:function (message) {
+                if (message.code == 400){
+                    layer.msg(message.msg);
+                }
+            },
+            error:function () {
+                layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+            }
+        })
+    }
+</script>
+<body>
+<div>
+    <div id="particles-js" style="display: flex;align-items: center;justify-content: center;background: #000022;">
+    </div>
+    <div id="login-box" align="center" style="z-index:10;position: absolute;right: 43%;top: 30%">
+        <div style="margin:0px auto;"></div>
+        <h1 style="color: #ffffff;padding-bottom: 20px">找回密码</h1>
+
+        <div class="easyui-panel" title=" " style="width:200%;max-width:450px;padding:30px 60px;background: #0E2D5F;height: 80%">
+            <div style="margin-bottom:20px">
+                <input id="task_workCode" class="easyui-textbox" prompt="请输入您的邮箱" iconWidth="28"  data-options="prompt:'Username',iconCls:'icon-man',iconWidth:38" style="width:100%;height:34px;padding:10px;background: #cccccc  ">
+                <div>
+                    <a href="javascript:obtain()" class="easyui-linkbutton" iconCls="icon-ok" style="width:100%;height:20px">获取验证码</a>
+                </div>
+            </div>
+            <div style="margin-bottom:30px">
+                <input id="verification_code" class="easyui-passwordbox" prompt="请输入您的验证码" iconWidth="28" data-options="prompt:'请输入您的验证码',iconCls:'icon-lock',iconWidth:38" style="width:100%;height:34px;padding:10px;background: #cccccc">
+            </div>
+            <div style="margin-bottom:30px">
+                <input id="task_password" class="easyui-passwordbox" prompt="请重新设置您的密码" iconWidth="28" data-options="prompt:'请设置您的密码',iconCls:'icon-lock',iconWidth:38" style="width:100%;height:34px;padding:10px;background: #cccccc">
+            </div>
+
+            <div>
+                <a href="javascript:determine()" class="easyui-linkbutton" iconCls="icon-ok" style="width:100%;height:35px">确定</a>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="js/layer/layer.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/app.js"></script>
+<script src="js/layer/layer.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

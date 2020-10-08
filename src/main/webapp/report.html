@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>报表统计</title>
+</head>
+<link rel="stylesheet" type="text/css" href="css/themes/default/easyui.css">
+<link rel="stylesheet" type="text/css" href="css/themes/icon.css">
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-migrate-1.2.1.min.js"></script>
+<script type="text/javascript" src="js/jquery.easyui.min.js"></script>
+<script type="text/javascript" src="js/jquery.fullcalendar.js?v=0.7"></script>
+<script type="text/javascript" src="js/echarts/echarts.min.js"></script>
+<script type="text/javascript">
+    $(function () {
+        //查询全部部门
+        $("#department_id").combobox({
+            url:'staff/findAllDepartment',
+            valueField:'department_id',
+            textField:'department_name',
+            onSelect:function (rec) {
+                var department_id = rec.department_id;
+                    $("#staff_id").combobox({
+                        url:'staff/findAllTaskStaff?department_id='+department_id+'',
+                    });
+            }
+        });
+        $("#staff_id").combobox({
+            valueField:'staff_id',
+            textField:'staff_name'
+        });
+    })
+    //传入输入的参数
+    function generate() {
+        //获取选取人的id
+        var dept_id = $("#staff_id").combotree("getValue");
+        //获取筛选的开始时间
+        var start = $("#start").datebox("getValue");
+        //获取筛选的开始时间
+        var end = $("#end").datebox("getValue");
+        //发送异步请求，获取满足要求的任务信息
+        $.ajax({
+            url:"staff/selectGenerate",
+            data:{"dept_id":dept_id,"start":start,"end":end},
+            type:"post",
+            dataType:"JSON",
+            success:function (message) {
+                if (message.code == 200){
+                    var chartData = message.data;
+                    makeGenerate(chartData);
+                }
+            },
+            error:function () {
+                layer.msg("对不起,请求异常 请与管理员联系! 09001!");
+            },
+            beforeSend:function (chartData) {
+                //设置图层显示
+                $("#loading").css("display","");
+            },
+            complete:function () {
+                //隐藏图层
+                $("#loading").css("display","none");
+            }
+        })
+    }
+    function makeGenerate(chartData) {
+        //创建三个数组
+        //任务人的名称
+        var nameData = new Array();//创建数组
+        var numberData = new Array();//创建数组
+        var pieData = new Array();//创建数组
+
+
+        nameData.push("未开始");
+        nameData.push("进行中");
+        nameData.push("已完成");
+        nameData.push("延期中");
+
+        //创建4个指标对应的值
+        var tempNum1=0,tempNum2=0,tempNum3=0,tempNum4=0;
+        for(var i=0;i<chartData.length;i++){
+            var taskInfoObject = chartData[i];
+            if(taskInfoObject.state.state_id=="1"){
+                tempNum1++;
+            }else if(taskInfoObject.state.state_id=="2"){
+                tempNum2++;
+            }else if(taskInfoObject.state.state_id=="3"){
+                tempNum3++;
+            }else if(taskInfoObject.state.state_id=="4"){
+                tempNum4++;
+            }
+        }
+
+        //饼状图数据
+        pieData.push({name:"未开始",value:tempNum1});
+        pieData.push({name:"进行中",value:tempNum2});
+        pieData.push({name:"已完成",value:tempNum3});
+        pieData.push({name:"延期中",value:tempNum4});
+
+        //柱状图数据
+        numberData.push(tempNum1);
+        numberData.push(tempNum2);
+        numberData.push(tempNum3);
+        numberData.push(tempNum4);
+        //初始化echarts实例，一个图形对应一个实例
+        var numberChart = echarts.init(document.getElementById("nav_bar"));
+        var pieChart = echarts.init(document.getElementById("pieChart"));
+        //指定图表对应的配置项以及数据
+        pieChart.setOption({
+            series:[{
+                name:"任务完成比列",
+                type:"pie",
+                radius:"80%",
+                data:[
+                    //类容
+                    {value:tempNum1,name:"未开始"},
+                    {value:tempNum2,name:"进行中"},
+                    {value:tempNum3,name:"已完成"},
+                    {value:tempNum4,name:"延期中"}
+                ]
+            }],
+            itemStyle:{
+                normal:{
+                    //设置扇形颜色
+                    color:"#ccc",
+                    //阴影的大小
+                    shadowBlur:200,
+                    //阴影水平方向的偏移
+                    shadowOffsetX:0,
+                    //垂直方向的偏移
+                    shadowOffsetY:0,
+                    //阴影颜色
+                    shadowColor:"rgba(0, 0, 0, 0.5)"
+                }
+            },
+            backgroundColor: '#fff',
+            textStyle:{
+                color: '#000'
+            },
+            lineStyle:{
+                color: 'rgba(255, 255, 255, 0.3)'
+            }
+        })
+        var numberOption = {
+            title:{
+                text:'任务完成情况',
+                subtext:"柱状图",
+                x:"center",//直接坐标的数字 px
+                y:"top",
+                itemGap:30,//
+                textStyle:{
+                    fontSize:26,
+                    color:"#000080",
+                    fontWeight:"bolder"
+                }
+            },
+            toolbox:{
+                show:false,
+                orient:"vertical",//工具类图标布局方向
+                itemSize:16,//icon大小
+                itemGap:30,//图标间隔
+                feature:{
+                    saveAsImage:{
+                        show:true,
+                        type:"jpeg",//格式
+                        name:"",//title
+                        pixelRatio:2 //保存图片的分辨率，默认
+                    }
+                }
+            },
+            xAxis:{
+                data:nameData
+            },
+            yAxis:{
+                type:"value"
+            },
+            series:[{
+                type:"bar",
+                barWith:"60%",
+                data:numberData,
+                itemStyle:{
+                    normal:{
+                        color:function(params){
+                                var colorList = ['#ccc','#ccc','#ccc','#ccc','#ccc']
+                            return colorList[params.dataIndex];
+                            //return '#'+Math.floor(Math.random()*(256*256*256-1)).toString(16);
+                        }
+                    }
+                }
+            }]
+        }
+
+        //将定义好的配置项赋给chart对象
+        //默认第二个参数为false，如果设置为ture，每次清空重新加载图像
+        numberChart.setOption(numberOption,true);
+    }
+    function out() {
+        window.location.href="index.html";
+    }
+    //日历日期格式转换
+    function myFormatter(date) {
+        var y = date.getFullYear();
+        var m = date.getMonth() + 1;
+        var d = date.getDate();
+        return y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d);
+    }
+    //日历日期格式转换
+    function myParser(s) {
+        if (!s) return new Date();
+        var ss = (s.split('-'));
+        var y = parseInt(ss[0], 10);
+        var m = parseInt(ss[1], 10);
+        var d = parseInt(ss[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            return new Date(y, m - 1, d);
+        } else {
+            return new Date();
+        }
+    }
+</script>
+<body  class="easyui-layout" style="margin: 0">
+<div>
+    <div data-options="region:'north',border:false" style="height:120px;background:#0E2D5F;margin:0 auto;">
+        <span style="color: #fff ;font-size: 30px;padding-left: 200px;position:absolute;top: 30px " >任务跟踪管理系统</span>
+        <div>
+            <a href="javascript:out()" id="getOut" style="color:#fff;font-size: 20px;position:absolute;top: 70px;right: 8%;text-decoration: none">返回</a>
+        </div>
+    </div>
+    <div data-options="region:'north',border:false" style="height:80px;background:#0E2D5F;text-align:center;">
+        <span style="color: #fff">部门</span>
+        <span style="color: #fff">部门接收人</span>
+        <input id="department_id" editable="false" >
+        <input id="staff_id"     editable="false"  >
+        <span style="color: #fff">从</span>
+        <input id="start" type="text" class= "easyui-datebox" data-options="formatter:myFormatter,parser:myParser"  name="start">
+        <span style="color: #fff">到</span>
+        <input id="end" type="text" class= "easyui-datebox" data-options="formatter:myFormatter,parser:myParser" name="end">
+        <span style="color: #fff">时间</span><br>
+        <a href="javascript:generate()" style="width: 5%;" class="easyui-linkbutton" >生成图形</a>
+        <div style="background: #1E9FFF;height: 10%;margin-top: 10px">
+        </div>
+    </div>
+</div>
+<div id="loading" style="display: none;width: 100%;height: 100%;position:absolute;left: 20%;
+z-index:10;filter: alpha(Opacity=80);-opacity:0.5;-moz-opacity:0.5;padding-top:10%;">
+    <img src="images/loading.gif">
+</div>
+<div id="nav_bar" style="height: 50%;width:65%;position: absolute;top: 20%;"></div>
+<div id="pieChart" style="height: 50%;width:50%;position: absolute;top: 20%;left: 60%"></div>
+<div style="background: #000;width: 100%;height: 15%;position: absolute;bottom: 0px;color: #fff;font-size: 20px;text-align: center">
+    <span>任务统计图</span>
+    <img src="css/themes/icons/任务统计报表.png" style="width: 95px; background: #cccccc;position: absolute;top: 22%;left: 48%">
+</div>
+<script src="js/layer/layer.js"></script>
+</body>
+</html>
